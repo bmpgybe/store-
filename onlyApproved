@@ -1,0 +1,67 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract AdvancedStorage {
+    address public owner;
+    string public storedData;
+    mapping(address => bool) public approvedUsers;
+    string[] public dataHistory;
+
+    event DataStored(address indexed user, string data);
+    event UserApproved(address indexed user);
+    event UserRevoked(address indexed user);
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only the owner can call this function");
+        _;
+    }
+
+    modifier onlyApproved() {
+        require(approvedUsers[msg.sender], "User is not approved to access this function");
+        _;
+    }
+
+    constructor() {
+        owner = msg.sender;
+        approvedUsers[owner] = true;
+    }
+
+    function set(string memory newData) external onlyApproved {
+        require(bytes(newData).length > 0, "Data must not be empty");
+
+        storedData = newData;
+        dataHistory.push(newData);
+
+        emit DataStored(msg.sender, newData);
+    }
+
+    function get() external view returns (string memory) {
+        return storedData;
+    }
+
+    function approveUser(address user) external onlyOwner {
+        require(!approvedUsers[user], "User is already approved");
+        
+        approvedUsers[user] = true;
+
+        emit UserApproved(user);
+    }
+
+    function revokeUser(address user) external onlyOwner {
+        require(approvedUsers[user], "User is not approved");
+        require(user != owner, "Cannot revoke owner's access");
+
+        approvedUsers[user] = false;
+
+        emit UserRevoked(user);
+    }
+
+    function getDataHistoryCount() external view returns (uint256) {
+        return dataHistory.length;
+    }
+
+    function getDataHistory(uint256 index) external view returns (string memory) {
+        require(index < dataHistory.length, "Index out of bounds");
+        return dataHistory[index];
+    }
+}
